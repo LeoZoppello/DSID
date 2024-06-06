@@ -1,0 +1,169 @@
+Servidor criado: 127.0.0.1:5003
+
+Tentando adicionar vizinho  127.0.0.1:5001
+Encaminhando mensagem "127.0.0.1:5003 1 1 HELLO" para 127.0.0.1:5001
+	Envio feito com sucesso: "127.0.0.1:5003 1 1 HELLO"
+Tentando adicionar vizinho  127.0.0.1:5002
+Encaminhando mensagem "127.0.0.1:5003 2 1 HELLO" para 127.0.0.1:5002
+	Envio feito com sucesso: "127.0.0.1:5003 2 1 HELLO"
+
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+1
+
+Escolha o vizinho:
+Ha 2 vizinhos na tabela:
+	[0] 127.0.0.1 5001
+	[1] 127.0.0.1 5002
+0
+Encaminhando mensagem "127.0.0.1:5003 3 1 HELLO" para 127.0.0.1:5001
+	Envio feito com sucesso: "127.0.0.1:5003 3 1 HELLO"
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+2
+
+Digite a chave a ser buscada
+ach2147
+Encaminhando mensagem "127.0.0.1:5003 1 100 SEARCH FL 5003 ach2147 1" para 127.0.0.1:5001
+Mensagem recebida: "127.0.0.1:5001 1 100 VAL FL ach2147 SistemasDistribuidos 1"
+	Valor encontrado!
+		chave: ach2147 valor: SistemasDistribuidos
+	Envio feito com sucesso: "127.0.0.1:5003 1 100 SEARCH FL 5003 ach2147 1"
+Encaminhando mensagem "127.0.0.1:5003 1 100 SEARCH FL 5003 ach2147 1" para 127.0.0.1:5002
+	Envio feito com sucesso: "127.0.0.1:5003 1 100 SEARCH FL 5003 ach2147 1"
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+3
+
+Digite a chave a ser buscada
+ach2147
+Encaminhando mensagem "127.0.0.1:5003 2 100 SEARCH RW 5003 ach2147 1" para 127.0.0.1:5002
+Mensagem recebida: "127.0.0.1:5001 2 100 VAL RW ach2147 SistemasDistribuidos 2"
+	Valor encontrado!
+		chave: ach2147 valor: SistemasDistribuidos
+	Envio feito com sucesso: "127.0.0.1:5003 2 100 SEARCH RW 5003 ach2147 1"
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+4
+
+Digite a chave a ser buscada
+ach2147
+Encaminhando mensagem "127.0.0.1:5003 3 100 SEARCH BP 5003 ach2147 1" para 127.0.0.1:5002
+Mensagem recebida: "127.0.0.1:5001 3 100 VAL BP ach2147 SistemasDistribuidos 2"
+	Valor encontrado!
+		chave: ach2147 valor: SistemasDistribuidos
+	Envio feito com sucesso: "127.0.0.1:5003 3 100 SEARCH BP 5003 ach2147 1"
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+5
+
+Estatisticas
+	Total de mensagens de flooding vistas: 0
+	Total de mensagens de random walk vistas: 0
+	Total de mensagens de busca em profundidade vistas: 0
+	Media de saltos ate encontrar destino por flooding: 1.0 (dp -1.00)
+	Media de saltos ate encontrar destino por random walk: 2.0 (dp -1.00)
+	Media de saltos ate encontrar destino por busca em profundidade: 2.0 (dp -1.00)
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+6
+
+Digite novo valor de TTL
+1
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+3
+
+Digite a chave a ser buscada
+teste
+Encaminhando mensagem "127.0.0.1:5003 4 1 SEARCH RW 5003 teste 1" para 127.0.0.1:5002
+	Envio feito com sucesso: "127.0.0.1:5003 4 1 SEARCH RW 5003 teste 1"
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+4
+
+Digite a chave a ser buscada
+teste
+Encaminhando mensagem "127.0.0.1:5003 5 1 SEARCH BP 5003 teste 1" para 127.0.0.1:5001
+	Envio feito com sucesso: "127.0.0.1:5003 5 1 SEARCH BP 5003 teste 1"
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+9
+
+Saindo...
+Encaminhando mensagem "127.0.0.1:5003 1 1 BYE" para 127.0.0.1:5001
+	Envio feito com sucesso: "127.0.0.1:5003 1 1 BYE"
+Encaminhando mensagem "127.0.0.1:5003 2 1 BYE" para 127.0.0.1:5002
+	Envio feito com sucesso: "127.0.0.1:5003 2 1 BYE"
