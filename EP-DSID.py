@@ -1,143 +1,146 @@
 import socket
-import threading
 import sys
-import random
+import threading
+import time
 
-class PeerNode:
+class Node:
     def __init__(self, address, port, neighbors_file=None, kv_file=None):
         self.address = address
-        self.port = int(port)
-        self.neighbors = {}
+        self.port = port
+        self.neighbors = []
         self.kv_store = {}
-        self.seq_no = 0
+        self.seqno = 1
         self.ttl_default = 100
-        self.statistics = {
+        self.messages_seen = set()
+        self.stats = {
             'messages_sent': 0,
             'messages_received': 0,
-            'search_successful': 0,
-            'search_failed': 0
+            'messages_forwarded': 0,
         }
-        self.seen_messages = set()
         self.load_neighbors(neighbors_file)
         self.load_kv_store(kv_file)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind((self.address, self.port))
-        self.sock.listen(5)
-        
-        threading.Thread(target=self.listen_for_connections).start()
+        self.start_server()
 
     def load_neighbors(self, neighbors_file):
         if neighbors_file:
-            with open(neighbors_file, 'r') as f:
-                for line in f:
-                    neighbor_address, neighbor_port = line.strip().split(':')
-                    print(f'Tentando adicionar vizinho {neighbor_address}:{neighbor_port}')
-                    if self.send_hello(neighbor_address, int(neighbor_port)):
-                        self.neighbors[(neighbor_address, int(neighbor_port))] = True
+            with open(neighbors_file, 'r') as file:
+                for line in file:
+                    neighbor = line.strip()
+                    self.neighbors.append(neighbor)
+                    print(f"Tentando adicionar vizinho {neighbor}")
+                    self.send_hello(neighbor)
 
     def load_kv_store(self, kv_file):
         if kv_file:
-            with open(kv_file, 'r') as f:
-                for line in f:
+            with open(kv_file, 'r') as file:
+                for line in file:
                     key, value = line.strip().split()
                     self.kv_store[key] = value
+                    print(f"Adicionando par ({key}, {value}) na tabela local")
 
-    def send_hello(self, address, port):
-        message = f"{self.address}:{self.port} {self.seq_no} 1 HELLO\n"
-        self.seq_no += 1
-        response = self.send_message(message, address, port)
-        if response == 'HELLO_OK':
-            print(f'Envio feito com sucesso: {message.strip()}')
-            return True
-        else:
-            print(f'Erro ao enviar mensagem: {message.strip()}')
-            return False
-
-    def send_message(self, message, address, port):
+    def send_hello(self, neighbor):
         try:
-            print(f'Encaminhando mensagem "{message.strip()}" para {address}:{port}')
+            neighbor_address, neighbor_port = neighbor.split(':')
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((address, port))
-                s.sendall(message.encode('utf-8'))
-                response = s.recv(1024).decode('utf-8').strip()
-                if response.endswith('_OK'):
-                    self.statistics['messages_sent'] += 1
-                    return response
+                s.connect((neighbor_address, int(neighbor_port)))
+                message = f"{self.address}:{self.port} {self.seqno} 1 HELLO\n"
+                s.sendall(message.encode())
+                print(f"Encaminhando mensagem {message.strip()} para {neighbor}")
+                response = s.recv(1024).decode().strip()
+                if response == "HELLO_OK":
+                    print(f"Envio feito com sucesso: {message.strip()}")
+                else:
+                    print("Erro ao conectar!")
         except Exception as e:
-            print(f'Erro ao enviar mensagem: {e}')
-        return None
+            print(f"Erro ao conectar: {e}")
 
-    def listen_for_connections(self):
-        while True:
-            conn, addr = self.sock.accept()
-            threading.Thread(target=self.handle_connection, args=(conn, addr)).start()
+    def start_server(self):
+        server = threading.Thread(target=self.run_server)
+        server.start()
 
-    def handle_connection(self, conn, addr):
+    def run_server(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((self.address, self.port))
+            s.listen()
+            print(f"Servidor criado: {self.address}:{self.port}")
+            while True:
+                conn, addr = s.accept()
+                client_handler = threading.Thread(target=self.handle_client, args=(conn,))
+                client_handler.start()
+
+    def handle_client(self, conn):
         with conn:
-            data = conn.recv(1024).decode('utf-8').strip()
-            if data:
-                self.statistics['messages_received'] += 1
-                print(f"Recebida mensagem: {data}")
-                parts = data.split()
-                origin, seq_no, ttl, operation = parts[:4]
-                ttl = int(ttl) - 1
-                if operation == 'HELLO':
-                    origin_address, origin_port = origin.split(':')
-                    origin_port = int(origin_port)
-                    if (origin_address, origin_port) not in self.neighbors:
-                        self.neighbors[(origin_address, origin_port)] = True
-                        print(f"Adicionando vizinho na tabela: {origin_address}:{origin_port}")
-                    else:
-                        print(f"Vizinho já está na tabela: {origin_address}:{origin_port}")
-                    conn.sendall(b'HELLO_OK\n')
-                elif operation == 'SEARCH':
-                    mode = parts[4]
-                    last_hop_port = int(parts[5])
-                    key = parts[6]
-                    hop_count = int(parts[7]) + 1
-                    if (origin, seq_no) in self.seen_messages:
-                        print("Mensagem já vista, descartando.")
-                        return
-                    self.seen_messages.add((origin, seq_no))
-                    if key in self.kv_store:
-                        value = self.kv_store[key]
-                        response = f"{self.address}:{self.port} {self.seq_no} {ttl} VAL {mode} {key} {value} {hop_count}\n"
-                        self.send_message(response, origin.split(':')[0], int(origin.split(':')[1]))
-                        self.statistics['search_successful'] += 1
-                    elif ttl > 0:
-                        if mode == 'FL':
-                            for neighbor in self.neighbors:
-                                if neighbor[1] != last_hop_port:
-                                    self.forward_search(key, origin, seq_no, ttl, neighbor, mode, hop_count)
-                        elif mode == 'RW':
-                            next_hop = self.get_random_neighbor(exclude_port=last_hop_port)
-                            if next_hop:
-                                self.forward_search(key, origin, seq_no, ttl, next_hop, mode, hop_count)
-                elif operation == 'VAL':
-                    mode = parts[4]
-                    key, value = parts[5], parts[6]
-                    hop_count = parts[7]
-                    print(f"Chave {key} encontrada: {value} (modo: {mode}, saltos: {hop_count})")
-                    self.statistics['search_successful'] += 1
-                conn.sendall(f"{operation}_OK\n".encode('utf-8'))
+            data = conn.recv(1024).decode().strip()
+            print(f"Mensagem recebida: {data}")
+            self.stats['messages_received'] += 1
+            parts = data.split()
+            origin = parts[0]
+            seqno = parts[1]
+            ttl = int(parts[2])
+            operation = parts[3]
+            message_id = (origin, seqno)
 
-    def forward_search(self, key, origin, seq_no, ttl, neighbor, mode, hop_count):
-        message = f"{origin} {seq_no} {ttl} SEARCH {mode} {self.port} {key} {hop_count}\n"
-        response = self.send_message(message, neighbor[0], neighbor[1])
-        if response is None:
-            self.statistics['search_failed'] += 1
+            if message_id in self.messages_seen:
+                print("Mensagem repetida!")
+                return
 
-    def get_random_neighbor(self, exclude_port=None):
-        neighbors_list = list(self.neighbors.keys())
-        if exclude_port:
-            neighbors_list = [n for n in neighbors_list if n[1] != exclude_port]
-        if not neighbors_list:
-            return None
-        return random.choice(neighbors_list)
+            self.messages_seen.add(message_id)
+
+            if operation == "HELLO":
+                self.handle_hello(conn, origin)
+            elif operation == "SEARCH":
+                mode = parts[4]
+                last_hop_port = parts[5]
+                key = parts[6]
+                hop_count = int(parts[7])
+                self.handle_search(origin, seqno, ttl, mode, last_hop_port, key, hop_count)
+
+    def handle_hello(self, conn, origin):
+        if origin not in self.neighbors:
+            self.neighbors.append(origin)
+            print(f"Adicionando vizinho na tabela: {origin}")
+        else:
+            print(f"Vizinho já está na tabela: {origin}")
+        conn.sendall(b"HELLO_OK\n")
+
+    def handle_search(self, origin, seqno, ttl, mode, last_hop_port, key, hop_count):
+        if key in self.kv_store:
+            value = self.kv_store[key]
+            response = f"{self.address}:{self.port} {self.seqno} 1 VAL {mode} {key} {value} {hop_count}\n"
+            self.send_message(origin, response)
+            return
+
+        ttl -= 1
+        if ttl == 0:
+            print("TTL igual a zero, descartando mensagem")
+            return
+
+        hop_count += 1
+        message = f"{origin} {seqno} {ttl} SEARCH {mode} {self.port} {key} {hop_count}\n"
+        for neighbor in self.neighbors:
+            if neighbor.endswith(f":{last_hop_port}"):
+                continue
+            self.send_message(neighbor, message)
+
+    def send_message(self, destination, message):
+        try:
+            dest_address, dest_port = destination.split(':')
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((dest_address, int(dest_port)))
+                s.sendall(message.encode())
+                print(f"Encaminhando mensagem {message.strip()} para {destination}")
+                response = s.recv(1024).decode().strip()
+                if response.endswith("_OK"):
+                    print(f"Envio feito com sucesso: {message.strip()}")
+                    self.stats['messages_sent'] += 1
+                else:
+                    print("Erro ao enviar mensagem!")
+        except Exception as e:
+            print(f"Erro ao conectar: {e}")
 
     def menu(self):
         while True:
-            print("\nEscolha o comando:")
+            print("Escolha o comando")
             print("[0] Listar vizinhos")
             print("[1] HELLO")
             print("[2] SEARCH (flooding)")
@@ -146,88 +149,63 @@ class PeerNode:
             print("[5] Estatísticas")
             print("[6] Alterar valor padrão de TTL")
             print("[9] Sair")
-            choice = input("Escolha a opção de busca: ")
+            choice = input().strip()
             if choice == '0':
                 self.list_neighbors()
             elif choice == '1':
-                self.hello()
+                self.send_hello_to_all()
             elif choice == '2':
-                key = input("Digite a chave a ser buscada: ")
-                self.flooding_search(key)
+                self.search("flooding")
             elif choice == '3':
-                key = input("Digite a chave a ser buscada: ")
-                self.random_walk_search(key)
+                self.search("random walk")
             elif choice == '4':
-                key = input("Digite a chave a ser buscada: ")
-                self.dfs_search(key)
+                self.search("depth")
             elif choice == '5':
-                self.show_statistics()
+                self.print_statistics()
             elif choice == '6':
-                new_ttl = input("Digite o novo valor de TTL: ")
-                self.ttl_default = int(new_ttl)
+                self.change_ttl()
             elif choice == '9':
                 break
 
     def list_neighbors(self):
-        neighbors_list = list(self.neighbors.keys())
-        print(f"Há {len(neighbors_list)} vizinhos na tabela:")
-        for index, neighbor in enumerate(neighbors_list):
-            print(f"[{index}] {neighbor[0]} {neighbor[1]}")
+        for neighbor in self.neighbors:
+            print(neighbor)
 
-    def hello(self):
-        self.list_neighbors()
-        choice = input("Escolha o vizinho: ")
-        try:
-            choice_index = int(choice)
-            neighbor = list(self.neighbors.keys())[choice_index]
-            self.send_hello(neighbor[0], neighbor[1])
-        except (IndexError, ValueError):
-            print("Escolha inválida. Tente novamente.")
+    def send_hello_to_all(self):
+        for neighbor in self.neighbors:
+            self.send_hello(neighbor)
 
-    def flooding_search(self, key):
+    def search(self, mode):
+        key = input("Digite a chave a ser buscada: ").strip()
         if key in self.kv_store:
             print(f"Valor na tabela local! chave: {key} valor: {self.kv_store[key]}")
         else:
-            message = f"{self.address}:{self.port} {self.seq_no} {self.ttl_default} SEARCH FL {self.port} {key} 1\n"
-            self.seq_no += 1
-            self.seen_messages.add((f"{self.address}:{self.port}", self.seq_no))
-            for neighbor in self.neighbors:
-                self.send_message(message, neighbor[0], neighbor[1])
+            self.initiate_search(key, mode)
 
-    def random_walk_search(self, key):
-        if key in self.kv_store:
-            print(f"Valor na tabela local! chave: {key} valor: {self.kv_store[key]}")
-        else:
-            next_hop = self.get_random_neighbor()
-            if next_hop:
-                message = f"{self.address}:{self.port} {self.seq_no} {self.ttl_default} SEARCH RW {self.port} {key} 1\n"
-                self.seq_no += 1
-                self.send_message(message, next_hop[0], next_hop[1])
-                self.seen_messages.add((f"{self.address}:{self.port}", self.seq_no))
+    def initiate_search(self, key, mode):
+        message = f"{self.address}:{self.port} {self.seqno} {self.ttl_default} SEARCH {mode} {self.port} {key} 1\n"
+        self.messages_seen.add((f"{self.address}:{self.port}", str(self.seqno)))
+        for neighbor in self.neighbors:
+            self.send_message(neighbor, message)
+        self.seqno += 1
 
-    def dfs_search(self, key):
-        if key in self.kv_store:
-            print(f"Valor na tabela local! chave: {key} valor: {self.kv_store[key]}")
-        else:
-            stack = list(self.neighbors.keys())
-            while stack:
-                neighbor = stack.pop()
-                message = f"{self.address}:{self.port} {self.seq_no} {self.ttl_default} SEARCH DFS {self.port} {key} 1\n"
-                self.seq_no += 1
-                response = self.send_message(message, neighbor[0], neighbor[1])
-                if response is not None:
-                    break
+    def print_statistics(self):
+        print("Estatísticas:")
+        print(f"Mensagens enviadas: {self.stats['messages_sent']}")
+        print(f"Mensagens recebidas: {self.stats['messages_received']}")
+        print(f"Mensagens encaminhadas: {self.stats['messages_forwarded']}")
 
-    def show_statistics(self):
-        print(f"Mensagens enviadas: {self.statistics['messages_sent']}")
-        print(f"Mensagens recebidas: {self.statistics['messages_received']}")
-        print(f"Buscas bem-sucedidas: {self.statistics['search_successful']}")
-        print(f"Buscas falhadas: {self.statistics['search_failed']}")
+    def change_ttl(self):
+        self.ttl_default = int(input("Digite o novo valor de TTL: ").strip())
 
 if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Modo de u4we mnbv so: python ep.py <endereço>:<porta> [vizinhos.txt] [lista_chave_valor.txt]")
+        sys.exit(1)
+
     address, port = sys.argv[1].split(':')
     neighbors_file = sys.argv[2] if len(sys.argv) > 2 else None
     kv_file = sys.argv[3] if len(sys.argv) > 3 else None
 
-    node = PeerNode(address, port, neighbors_file, kv_file)
+    node = Node(address, int(port), neighbors_file, kv_file)
     node.menu()

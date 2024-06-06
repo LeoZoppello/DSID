@@ -1,0 +1,44 @@
+Servidor criado: 127.0.0.1:5001
+
+Tentando adicionar vizinho  127.0.0.1:5002
+Encaminhando mensagem "127.0.0.1:5001 1 1 HELLO" para 127.0.0.1:5002
+	Erro ao conectar!
+Tentando adicionar vizinho  127.0.0.1:5003
+Encaminhando mensagem "127.0.0.1:5001 2 1 HELLO" para 127.0.0.1:5003
+	Erro ao conectar!
+
+Adicionando par (ach2147, SistemasDistribuidos) na tabela local
+
+Escolha o comando
+	[0] Listar vizinhos
+	[1] HELLO
+	[2] SEARCH (flooding)
+	[3] SEARCH (random walk)
+	[4] SEARCH (busca em profundidade)
+	[5] Estatisticas
+	[6] Alterar valor padrao de TTL
+	[9] Sair
+Mensagem recebida: "127.0.0.1:5002 1 1 HELLO"
+	Adicionando vizinho na tabela: 127.0.0.1:5002
+Mensagem recebida: "127.0.0.1:5003 1 1 HELLO"
+	Adicionando vizinho na tabela: 127.0.0.1:5003
+Mensagem recebida: "127.0.0.1:5003 3 1 HELLO"
+	Vizinho ja esta na tabela: 127.0.0.1:5003
+Mensagem recebida: "127.0.0.1:5003 1 100 SEARCH FL 5003 ach2147 1"
+	Chave encontrada!
+Encaminhando mensagem "127.0.0.1:5001 1 100 VAL FL ach2147 SistemasDistribuidos 1" para 127.0.0.1:5003
+	Envio feito com sucesso: "127.0.0.1:5001 1 100 VAL FL ach2147 SistemasDistribuidos 1"
+Mensagem recebida: "127.0.0.1:5003 1 99 SEARCH FL 5002 ach2147 2"
+	Flooding: message repetida
+Mensagem recebida: "127.0.0.1:5003 2 99 SEARCH RW 5002 ach2147 2"
+	Chave encontrada!
+Encaminhando mensagem "127.0.0.1:5001 2 100 VAL RW ach2147 SistemasDistribuidos 2" para 127.0.0.1:5003
+	Envio feito com sucesso: "127.0.0.1:5001 2 100 VAL RW ach2147 SistemasDistribuidos 2"
+Mensagem recebida: "127.0.0.1:5003 3 99 SEARCH BP 5002 ach2147 2"
+	Chave encontrada!
+Encaminhando mensagem "127.0.0.1:5001 3 100 VAL BP ach2147 SistemasDistribuidos 2" para 127.0.0.1:5003
+	Envio feito com sucesso: "127.0.0.1:5001 3 100 VAL BP ach2147 SistemasDistribuidos 2"
+Mensagem recebida: "127.0.0.1:5003 5 1 SEARCH BP 5003 teste 1"
+	TTL igual a zero, descartando mensagem
+Mensagem recebida: "127.0.0.1:5003 1 1 BYE"
+	Removendo vizinho da tabela 127.0.0.1:5003
