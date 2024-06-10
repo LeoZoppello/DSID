@@ -94,6 +94,8 @@ class Node:
                 key = parts[6]
                 hop_count = int(parts[7])
                 self.handle_search(origin, seqno, ttl, mode, last_hop_port, key, hop_count)
+            elif operation == "BYE":
+                self.handle_bye(origin)
 
     def handle_hello(self, conn, origin):
         if origin not in self.neighbors:
@@ -122,6 +124,11 @@ class Node:
                 continue
             self.send_message(neighbor, message)
 
+    def handle_bye(self, origin):
+        if origin in self.neighbors:
+            self.neighbors.remove(origin)
+            print(f"Removendo vizinho da tabela: {origin}")
+
     def send_message(self, destination, message):
         try:
             dest_address, dest_port = destination.split(':')
@@ -137,6 +144,12 @@ class Node:
                     print("Erro ao enviar mensagem!")
         except Exception as e:
             print(f"Erro ao conectar: {e}")
+
+    def send_bye_to_all(self):
+        for neighbor in self.neighbors:
+            message = f"{self.address}:{self.port} {self.seqno} 1 BYE\n"
+            self.send_message(neighbor, message)
+            self.seqno += 1
 
     def menu(self):
         while True:
@@ -165,6 +178,9 @@ class Node:
             elif choice == '6':
                 self.change_ttl()
             elif choice == '9':
+                print("Você escolheu 9")
+                print("Saindo...")
+                self.send_bye_to_all()
                 break
 
     def list_neighbors(self):
@@ -200,7 +216,7 @@ class Node:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Modo de u4we mnbv so: python ep.py <endereço>:<porta> [vizinhos.txt] [lista_chave_valor.txt]")
+        print("Modo de uso: python node.py <endereço>:<porta> [vizinhos.txt] [lista_chave_valor.txt]")
         sys.exit(1)
 
     address, port = sys.argv[1].split(':')
