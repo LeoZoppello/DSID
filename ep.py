@@ -153,15 +153,7 @@ class Node:
 
     def menu(self):
         while True:
-            print("Escolha o comando")
-            print("[0] Listar vizinhos")
-            print("[1] HELLO")
-            print("[2] SEARCH (flooding)")
-            print("[3] SEARCH (random walk)")
-            print("[4] SEARCH (busca em profundidade)")
-            print("[5] Estatísticas")
-            print("[6] Alterar valor padrão de TTL")
-            print("[9] Sair")
+            print("Escolha o comando\n[0] Listar vizinhos\n[1] HELLO\n[2] SEARCH (flooding)\n[3] SEARCH (random walk)\n[4] SEARCH (busca em profundidade)\n[5] Estatísticas\n[6] Alterar valor padrão de TTL\n[9] Sair")
             choice = input().strip()
             if choice == '0':
                 self.list_neighbors()
@@ -216,7 +208,7 @@ class Node:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Modo de uso: python node.py <endereço>:<porta> [vizinhos.txt] [lista_chave_valor.txt]")
+        print("Modo de uso: python ep.py <endereço>:<porta> [vizinhos.txt] [lista_chave_valor.txt]")
         sys.exit(1)
 
     address, port = sys.argv[1].split(':')
